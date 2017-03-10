@@ -44,7 +44,6 @@ class CodeBuilder(object):
         python_source = str(self)
         # 定义命名空间、执行代码、返回命名空间
         global_namespace = {}
-        print(python_source)
         exec(python_source, global_namespace)
         return global_namespace
 
