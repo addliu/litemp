@@ -73,13 +73,13 @@ class Litemp(object):
             <h1>Hello {{name|upper}}!</h1>
             {% for topic in topics %}
                 <p>You are interested in {{topic}}.</p>
-            {% endif %}
+            {% endfor %}
             ''',
             {'upper': str.upper},
         )
         text = litemp.render({
             'name': "Ned",
-            'topics': ['Python', 'Geometry', 'Juggling'],
+            'topics': ['Python', 'Geometry', 'Juggling']
         })
     获得的结果::
 
