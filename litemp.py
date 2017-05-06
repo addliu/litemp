@@ -1,4 +1,4 @@
-# Created by liucahung on 2017.03.07
+# Created by liucahung on 2017/3/7
 import re
 
 
@@ -93,7 +93,7 @@ class Litemp(object):
         """
         构造函数
         :param text: 待渲染的字符串
-        :param contexts: 函数，进一步渲染
+        :param contexts: 函数或方法，进一步渲染
         """
         self.context = {}
         for context in contexts:
@@ -155,6 +155,31 @@ class Litemp(object):
                     self._variable(words[1], self.loop_vars)
                     code.add_line("for c_{0!s} in {1!s}:".format(words[1], self._expr_code(words[3])))
                     code.indent()
+                elif words[0] == 'elif':
+                    # else if 代码块
+                    if len(words) != 2:
+                        self._syntax_error("Don't understand elif", token)
+                    top = ops_stack.pop()
+                    if top != 'if':
+                        self._syntax_error("Can't use elif here", token)
+                    else:
+                        code.dedent()
+                        code.add_line("elif {0!s}:".format(self._expr_code(words[1])))
+                        code.indent()
+                    ops_stack.append(top)
+                elif words[0] == 'else':
+                    # else 代码块
+                    if len(words) != 1:
+                        self._syntax_error("Don't understand else", token)
+                    top = ops_stack.pop()
+                    if top != 'if':
+                        self._syntax_error("Can't use else here", token)
+                    else:
+                        code.dedent()
+                        code.add_line("else:")
+                        code.indent()
+                    ops_stack.append(top)
+                    ops_stack.append('else')
                 elif words[0].startswith('end'):
                     # 结束操作，弹出操作栈最顶上元素
                     if len(words) != 1:
@@ -163,6 +188,8 @@ class Litemp(object):
                     if not ops_stack:
                         self._syntax_error("Too many ends", token)
                     start_what = ops_stack.pop()
+                    if start_what == 'else':
+                        start_what = ops_stack.pop()
                     if start_what != end_what:
                         self._syntax_error("Mismatched end tag", end_what)
                     code.dedent()

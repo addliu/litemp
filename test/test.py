@@ -1,8 +1,6 @@
 # Created by liuchuang on 2017/3/15.
 from litemp import Litemp, LitempSyntaxError
 
-temp = "<h1>Hello<h1>"
-
 lite = Litemp('''
             <h1>Hello {{name|upper}}!</h1>
             {% for topic in topics %}
