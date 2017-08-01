@@ -23,6 +23,7 @@ class LitempTest(TestCase):
         Result defaults to None so we can shorten the calls where we expect
         an exception and never get to the result comparison.
         """
+        print(Litemp(text))
         actual = Litemp(text).render(ctx or {})
         if result:
             self.assertEqual(actual, result)

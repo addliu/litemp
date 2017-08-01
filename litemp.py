@@ -7,36 +7,36 @@ class LitempSyntaxError(ValueError):
     pass
 
 
-class CodeBuilder(object):
+class CodeGenerate(object):
     """代码构造器"""
     INDENT_STEP = 4
 
-    def __init__(self, indent=0):
+    def __init__(self, indent_level=0):
         self.code = []
-        self.indent_level = indent
+        self.indent_level = indent_level
 
     def __str__(self):
         return "".join(str(c) for c in self.code)
 
-    def add_line(self, line):
+    def add_new_line(self, line):
         """在源代码中另起一行"""
         self.code.extend([" " * self.indent_level, line, "\n"])
 
-    def add_section(self):
+    def add_new_section(self):
         """增加一个子代码构造器"""
-        section = CodeBuilder(self.indent_level)
+        section = CodeGenerate(self.indent_level)
         self.code.append(section)
         return section
 
-    def indent(self):
+    def code_indent(self):
         """增加下一行代码缩进等级"""
         self.indent_level += self.INDENT_STEP
 
-    def dedent(self):
+    def code_dedent(self):
         """减少下一行代码缩进等级"""
         self.indent_level -= self.INDENT_STEP
 
-    def get_globals(self):
+    def get_global_namespace(self):
         """执行代码，返回该代码的命名空间"""
         # 检查最后缩进等级是否正常
         assert self.indent_level == 0
@@ -102,24 +102,24 @@ class Litemp(object):
         self.all_vars = set()
         self.loop_vars = set()
 
-        code = CodeBuilder()
-        code.add_line("def render_function(context, do_dots):")
-        code.indent()
+        code = CodeGenerate()
+        code.add_new_line("def render_function(context, do_dots):")
+        code.code_indent()
         # 用于变量定义，所以放在最前面
-        vars_code = code.add_section()
-        code.add_line("result = []")
-        code.add_line("append_result = result.append")
-        code.add_line("extend_result = result.extend")
-        code.add_line("to_str = str")
+        vars_code = code.add_new_section()
+        code.add_new_line("result = []")
+        code.add_new_line("append_result = result.append")
+        code.add_new_line("extend_result = result.extend")
+        code.add_new_line("to_str = str")
 
         buffered = []
 
         def flush_output():
             """强制将 buffered 推到代码构造器"""
             if len(buffered) == 1:
-                code.add_line("append_result({0!s})".format(buffered[0]))
+                code.add_new_line("append_result({0!s})".format(buffered[0]))
             elif len(buffered) > 1:
-                code.add_line("extend_result([{0!s}])".format(",".join(buffered)))
+                code.add_new_line("extend_result([{0!s}])".format(",".join(buffered)))
             del buffered[:]
 
         # 操作栈
@@ -134,7 +134,7 @@ class Litemp(object):
                 continue
             elif token.startswith('{{'):
                 # 表达式
-                expr = self._expr_code(token[2:-2].strip())
+                expr = self._expression_code(token[2:-2].strip())
                 buffered.append("to_str({0!s})".format(expr))
             elif token.startswith('{%'):
                 # 逻辑操作
@@ -145,16 +145,16 @@ class Litemp(object):
                     if len(words) != 2:
                         self._syntax_error("Don't understand if", token)
                     ops_stack.append('if')
-                    code.add_line("if {0!s}:".format(self._expr_code(words[1])))
-                    code.indent()
+                    code.add_new_line("if {0!s}:".format(self._expression_code(words[1])))
+                    code.code_indent()
                 elif words[0] == 'for':
                     # for循环代码块
                     if len(words) != 4 or words[2] != 'in':
                         self._syntax_error("Don't understand for", token)
                     ops_stack.append('for')
                     self._variable(words[1], self.loop_vars)
-                    code.add_line("for c_{0!s} in {1!s}:".format(words[1], self._expr_code(words[3])))
-                    code.indent()
+                    code.add_new_line("for c_{0!s} in {1!s}:".format(words[1], self._expression_code(words[3])))
+                    code.code_indent()
                 elif words[0] == 'elif':
                     # else if 代码块
                     if len(words) != 2:
@@ -163,9 +163,9 @@ class Litemp(object):
                     if top != 'if':
                         self._syntax_error("Can't use elif here", token)
                     else:
-                        code.dedent()
-                        code.add_line("elif {0!s}:".format(self._expr_code(words[1])))
-                        code.indent()
+                        code.code_dedent()
+                        code.add_new_line("elif {0!s}:".format(self._expression_code(words[1])))
+                        code.code_indent()
                     ops_stack.append(top)
                 elif words[0] == 'else':
                     # else 代码块
@@ -175,9 +175,9 @@ class Litemp(object):
                     if top != 'if':
                         self._syntax_error("Can't use else here", token)
                     else:
-                        code.dedent()
-                        code.add_line("else:")
-                        code.indent()
+                        code.code_dedent()
+                        code.add_new_line("else:")
+                        code.code_indent()
                     ops_stack.append(top)
                     ops_stack.append('else')
                 elif words[0].startswith('end'):
@@ -192,7 +192,7 @@ class Litemp(object):
                         start_what = ops_stack.pop()
                     if start_what != end_what:
                         self._syntax_error("Mismatched end tag", end_what)
-                    code.dedent()
+                    code.code_dedent()
                 else:
                     self._syntax_error("Don't understand tag", words[0])
             else:
@@ -206,24 +206,24 @@ class Litemp(object):
 
         for var_name in self.all_vars - self.loop_vars:
             # 变量定义
-            vars_code.add_line("c_{0!s} = context[{1!r}]".format(var_name, var_name))
+            vars_code.add_new_line("c_{0!s} = context[{1!r}]".format(var_name, var_name))
 
-        code.add_line("return ''.join(result)")
-        code.dedent()
-        self._render_function = code.get_globals()['render_function']
+        code.add_new_line("return ''.join(result)")
+        code.code_dedent()
+        self._render_function = code.get_global_namespace()['render_function']
 
-    def _expr_code(self, expr):
+    def _expression_code(self, expr):
         """为 expr 生成python的表达式"""
         if "|" in expr:
             pipes = expr.split("|")
-            code = self._expr_code(pipes[0])
+            code = self._expression_code(pipes[0])
             for func in pipes[1:]:
                 self._variable(func, self.all_vars)
                 code = "c_{0!s}({1!s})".format(func, code)
         elif "." in expr:
             dots = expr.split(".")
-            code = self._expr_code(dots[0])
-            args = ", ".join(repr(d) for d in dots[1])
+            code = self._expression_code(dots[0])
+            args = ", ".join(repr(d) for d in dots[1:])
             code = "do_dots({0!s}, {1!s})".format(code, args)
         else:
             self._variable(expr, self.all_vars)
@@ -259,9 +259,9 @@ class Litemp(object):
         render_context = dict(self.context)
         if context:
             render_context.update(context)
-        return self._render_function(render_context, self._do_dots)
+        return self._render_function(render_context, self._deal_dots)
 
-    def _do_dots(self, value, *dots):
+    def _deal_dots(self, value, *dots):
         """
         处理 . 表达式
         :param value: . 前面的表达式

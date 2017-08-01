@@ -1,0 +1,15 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <p>Welcome,{{ user.name }}!</p>
+    {# Show product's list #}
+    <ul>
+    {% for p in products %}
+    <li>{{ p.name }}: {{p.price|word_format}}</li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
